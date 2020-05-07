@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^R/data_processing\.R$
+^manuscript$
+^manuscript//compare_ann_to_McCord_ES&T2019\.R$
+^manuscript//data_processing\.R$
+^manuscript//figure_2-3_masslist_props\.R$
+^manuscript//figure_4_msmsperform\.R$
+^manuscript//figures$
