@@ -82,5 +82,42 @@ make_pfas_db <- function(
       result_sdf
     ))
   }
-
 }
+
+#' Make a flat file from the PFAScreeneR.db file
+#'
+#' Useful for creating flat files to use as input to other software
+#' (e.g., To make a mass list in Thermo Compound Discoverer)
+#' @param db_file Full path to a database file
+#' @param tables List of table names to merge and write to file
+#'
+#' @return filename of the exported flat file
+#' @export
+#'
+make_pfas_flat <-
+  function(db_file,
+           tables = c('molecules',
+                      'list_membership',
+                      'mol_props')) {
+    db_file <- normalizePath(db_file, mustWork = T)
+    conn <- DBI::dbConnect(RSQLite::SQLite(), db_file)
+    tables <- match.arg(tables, several.ok = T)
+    stopifnot(tables %in% DBI::dbListTables(conn))
+    dat <- purrr::map(tables, .f = function(x) dplyr::tbl(src = conn, x))
+    stopifnot(any(
+      sapply(tables, function(x)
+        'ID' %in% DBI::dbListFields(conn, x), USE.NAMES = F)
+    ))
+
+    x <- dat[[1]]
+    for (y in dat[2:length(tables)]) {
+      x <- dplyr::left_join(x, y)
+    }
+
+    dplyr::as_tibble(x) %>%
+    dplyr::group_by(ID) %>%
+      dplyr::summarise_all(.funs = list(~paste(unique(.), collapse = ','))) %>%
+      readr::write_csv(x = ., path = gsub('[.]db', '_dump.csv', db_file),col_names = T)
+  }
+
+globalVariables(c(".", "ID", "make_pfas_masslist"))

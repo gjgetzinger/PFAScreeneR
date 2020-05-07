@@ -2,4 +2,5 @@
 
 export("%>%")
 export(make_pfas_db)
+export(make_pfas_flat)
 importFrom(magrittr,"%>%")
