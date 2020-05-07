@@ -1,3 +1,5 @@
+
+
 #' Make a PFAS structure database from a list of input files
 #'
 #' Reads input files, performs transformations, writes results to database
@@ -19,6 +21,7 @@ make_pfas_db <- function(
   result_path = NULL,
   keep_sdf = F
 ){
+  # check for python packages
   stopifnot(reticulate::py_available(initialize = T))
   py_mods <- c(
     "rdkit","pandas","numpy",
@@ -28,14 +31,7 @@ make_pfas_db <- function(
     )
   stopifnot(sapply(py_mods, reticulate::py_module_available))
 
-  py_file <- system.file(package = 'PFAScreeneR') %>%
-    list.files(full.names = T,recursive = T,
-               pattern = 'pfas_masslist.py')
-
-  py_file <- normalizePath(py_file, mustWork = T)
-
-  reticulate::source_python(file = py_file)
-
+  # check for biotransformer dependency
   biotrans_jarfile <- normalizePath(biotrans_jarfile, mustWork = T)
   biotrans_required_files <-
     list.dirs(dirname(biotrans_jarfile),
@@ -51,6 +47,19 @@ make_pfas_db <- function(
     )
   }
 
+  # check for mol lists
+  mollist_path <- normalizePath(mollist_path, mustWork = T)
+  mollist_path <- paste0(mollist_path, '/')
+
+  # impor the python functions
+  py_file <- system.file("python", package = "PFAScreeneR") %>%
+    list.files(full.names = T,
+               recursive = T,
+               pattern = 'pfas_masslist.py')
+  py_file <- normalizePath(py_file, mustWork = T)
+  reticulate::source_python(file = py_file)
+
+  # set the output path
   result_path <-
     paste0(normalizePath(result_path, mustWork = T), '/PFAScreenR%s')
 
