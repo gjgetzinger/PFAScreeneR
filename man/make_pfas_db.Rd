@@ -8,7 +8,7 @@ make_pfas_db(
   mollist_path = NULL,
   biotrans_jarfile = NULL,
   result_path = NULL,
-  keep_sdf = F
+  keep_sdf = FALSE
 )
 }
 \arguments{

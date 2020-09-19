@@ -1,11 +1,15 @@
 Package: PFAScreeneR
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Create a PFAS molecular database and associated in silico tandem mass 
+   spectral library
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Authors:c(person("Gordon", "Getzinger", role = c("aut", "cre"), email = "gjg3@duke.edu"))
+Author: Gordon Getzinger [aut,cre]
+Maintainer: Gordon Getzinger <gjg3@duke.edu>
+Description: This package takes input PFAS molecular databases, predictes 
+   environmental transformations and creates an in silico tandem mass spectral
+   library for use in non-targeted high-resolution mass spectrometry analysis 
+   of environmental samples.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
