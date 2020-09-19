@@ -1,4 +1,5 @@
 
+globalVariables(c(".", "ID", "make_pfas_masslist"))
 
 #' Make a PFAS structure database from a list of input files
 #'
@@ -129,4 +130,69 @@ make_pfas_flat <-
       readr::write_csv(x = ., path = gsub('[.]db', '_dump.csv', db_file),col_names = T)
   }
 
-globalVariables(c(".", "ID", "make_pfas_masslist"))
+merge_masslists <- function(l1, l2){
+  l1 <- normalizePath('/Volumes/pf31-00/data/Data/PFASTscreening/PFAScreeneR_dump.csv', mustWork = T)
+  l2 <- normalizePath('/Volumes/pf31-00/data/Data/PFASTscreening/TargetPFAS_massList_table.csv', mustWork = T)
+
+  l1 <- readr::read_csv(l1)
+  l2 <- readr::read_tsv(l2)
+
+  l3 <- left_join(
+    l1,
+    l2 %>%
+      filter(!Mass.Labeled, !is.na(`RT [min]`)) %>%
+      select(ID = InChI.Key.14.block, contains('RT'), CAS) %>%
+      distinct(ID, .keep_all = T)
+  )
+
+  readr::write_csv(l3, '/Volumes/pf31-00/data/Data/PFASTscreening/PFAScreenR_masslist.csv')
+}
+
+get_predcomp_params <- function(db_file){
+  conn <- DBI::dbConnect(RSQLite::SQLite(), db_file)
+  mol_form <- tbl(conn, 'mol_props') %>%
+    filter(ExactMass < 1000) %>%
+    filter_at(vars(HBD, HBA, FormalCharge), any_vars(. != 0)) %>%
+    group_by(MolForm, FormalCharge, HBD, HBA) %>%
+    count(sort = T) %>%
+    as_tibble()
+
+
+  mf_cts <- map_dfr(mol_form$MolForm, function(x){
+    tibble::enframe(cfmR::clean_form(x, as_cts = T)) %>%
+      pivot_wider(value, name)
+    })
+
+  d <- bind_cols(mol_form, mf_cts)
+
+  # rdbe
+  rdkit <- reticulate::import('rdkit')
+  pt <- rdkit$Chem$GetPeriodicTable()
+
+  v <-
+    sapply(colnames(mf_cts), function(x) {
+      rdkit$Chem$PeriodicTable$GetDefaultValence(pt, x)
+    }) %>%
+    matrix(rep(.), ncol = ncol(mf_cts), nrow = nrow(mf_cts))
+
+  n <- mf_cts %>%
+    mutate_all(list(~replace_na(.,0))) %>%
+    as.matrix()
+
+  d$rdbe <- 1 + 0.5*rowSums(n*(v-2))
+
+  d <- mutate(d, HC = H/C)
+
+  probs <- c(0.05, 0.95)
+  list(
+    elem_ranges = apply(mf_cts, 2, range, na.rm = T),
+    elem_wt_range = apply(mf_cts, 2, Hmisc::wtd.quantile, weights = d$n, probs = probs),
+    HC_range = range(d$HC, na.rm = T),
+    HC_wt_range = Hmisc::wtd.quantile(x = d$HC, weights = d$n, probs = probs) %>% unlist,
+    rdbe_range = range(d$rdbe, na.rm = T),
+    rdbe_wt_range = Hmisc::wtd.quantile(x = d$rdbe, weights = d$n, probs = probs) %>% unlist
+  )
+
+}
+
+
